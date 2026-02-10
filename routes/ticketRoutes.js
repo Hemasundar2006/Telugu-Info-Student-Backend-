@@ -25,6 +25,15 @@ router.post(
   createTicket
 );
 
+// SUPPORT: list open/in-progress tickets at base path as well
+// GET /api/tickets
+router.get(
+  '/',
+  protect,
+  authorize('SUPPORT'),
+  getSupportTickets
+);
+
 // SUPPORT: list open/in-progress tickets
 router.get(
   '/support',
