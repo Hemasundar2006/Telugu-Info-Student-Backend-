@@ -127,6 +127,140 @@ const userProfileSchema = new mongoose.Schema(
         },
       },
     ],
+
+    // H. Experiences (work history)
+    experiences: [
+      {
+        companyName: {
+          type: String,
+          trim: true,
+          required: [true, 'companyName is required'],
+        },
+        designation: {
+          type: String,
+          trim: true,
+          required: [true, 'designation is required'],
+        },
+        location: {
+          type: String,
+          trim: true,
+          required: [true, 'location is required'],
+        },
+        joiningDate: {
+          type: Date,
+          required: [true, 'joiningDate is required'],
+        },
+        currentlyWorkingHere: {
+          type: Boolean,
+          default: false,
+        },
+        completionDate: {
+          type: Date,
+        },
+        description: {
+          type: String,
+          trim: true,
+          required: [true, 'description is required'],
+        },
+      },
+    ],
+
+    // I. Educations (detailed education history)
+    educations: [
+      {
+        instituteName: {
+          type: String,
+          trim: true,
+          required: [true, 'instituteName is required'],
+        },
+        degree: {
+          type: String,
+          trim: true,
+          required: [true, 'degree is required'],
+        },
+        fieldOfStudy: {
+          type: String,
+          trim: true,
+          required: [true, 'fieldOfStudy is required'],
+        },
+        courseDurationYears: {
+          type: Number,
+          required: [true, 'courseDurationYears is required'],
+        },
+        startDate: {
+          type: Date,
+          required: [true, 'startDate is required'],
+        },
+        currentlyStudying: {
+          type: Boolean,
+          default: false,
+        },
+        endDate: {
+          type: Date,
+        },
+        gradeType: {
+          type: String,
+          trim: true,
+        },
+        description: {
+          type: String,
+          trim: true,
+          required: [true, 'description is required'],
+        },
+      },
+    ],
+
+    // J. Projects
+    projects: [
+      {
+        title: {
+          type: String,
+          trim: true,
+          required: [true, 'title is required'],
+        },
+        technologiesUsed: {
+          type: String,
+          trim: true,
+          required: [true, 'technologiesUsed is required'],
+        },
+        description: {
+          type: String,
+          trim: true,
+          required: [true, 'description is required'],
+        },
+        projectLink: {
+          type: String,
+          trim: true,
+        },
+        role: {
+          type: String,
+          trim: true,
+          required: [true, 'role is required'],
+        },
+        media: [
+          {
+            url: {
+              type: String,
+              trim: true,
+            },
+            type: {
+              type: String,
+              trim: true,
+            },
+            name: {
+              type: String,
+              trim: true,
+            },
+          },
+        ],
+      },
+    ],
+
+    // K. Referral (for "Your Referral Link" UI section)
+    referralLink: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,
