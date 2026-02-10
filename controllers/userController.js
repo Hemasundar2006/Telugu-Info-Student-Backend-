@@ -35,42 +35,12 @@ const badRequest = (res, message, details) =>
     ...(details ? { details } : {}),
   });
 
-const validateStrictNumber = (res, fieldPath, value) => {
-  if (value === undefined) return true;
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    badRequest(res, `${fieldPath} must be a number`);
-    return false;
-  }
-  return true;
-};
-
-const validateArrayOfStrings = (res, fieldPath, value) => {
-  if (value === undefined) return true;
-  if (!Array.isArray(value) || value.some((x) => typeof x !== 'string')) {
-    badRequest(res, `${fieldPath} must be an array of strings`);
-    return false;
-  }
-  return true;
-};
-
 /**
  * POST /api/user-profiles
  */
 exports.createUserProfile = async (req, res) => {
   try {
     const body = req.body || {};
-
-    // Strict typing checks (reject numeric strings)
-    if (
-      !validateStrictNumber(res, 'jobPreferences.minExpectedSalary', body?.jobPreferences?.minExpectedSalary) ||
-      !validateStrictNumber(res, 'jobPreferences.maxExpectedSalary', body?.jobPreferences?.maxExpectedSalary) ||
-      !validateStrictNumber(res, 'currentEducation.yearOfPassing', body?.currentEducation?.yearOfPassing)
-    ) {
-      return;
-    }
-
-    if (!validateArrayOfStrings(res, 'skills', body.skills)) return;
-    if (!validateArrayOfStrings(res, 'hobbies', body.hobbies)) return;
 
     const created = await UserProfile.create(body);
     return res.status(201).json({ success: true, data: created });
@@ -158,18 +128,6 @@ exports.updateUserProfile = async (req, res) => {
     }
 
     const body = req.body || {};
-
-    // Strict typing checks (reject numeric strings)
-    if (
-      !validateStrictNumber(res, 'jobPreferences.minExpectedSalary', body?.jobPreferences?.minExpectedSalary) ||
-      !validateStrictNumber(res, 'jobPreferences.maxExpectedSalary', body?.jobPreferences?.maxExpectedSalary) ||
-      !validateStrictNumber(res, 'currentEducation.yearOfPassing', body?.currentEducation?.yearOfPassing)
-    ) {
-      return;
-    }
-
-    if (!validateArrayOfStrings(res, 'skills', body.skills)) return;
-    if (!validateArrayOfStrings(res, 'hobbies', body.hobbies)) return;
 
     // Prevent accidental full replacement; $set only provided fields.
     const $set = flattenForSet(body);
