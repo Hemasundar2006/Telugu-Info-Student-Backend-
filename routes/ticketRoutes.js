@@ -25,12 +25,13 @@ router.post(
   createTicket
 );
 
+// USER: list own tickets
 // SUPPORT: list open/in-progress tickets at base path as well
 // GET /api/tickets
 router.get(
   '/',
   protect,
-  authorize('SUPPORT'),
+  authorize('USER', 'SUPPORT'),
   getSupportTickets
 );
 

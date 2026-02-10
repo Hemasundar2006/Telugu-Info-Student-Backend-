@@ -23,16 +23,34 @@ exports.createTicket = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * GET /api/tickets/support
- * SUPPORT only. Lists tickets: OPEN and IN_PROGRESS (optionally assigned to this support).
+ * GET /api/tickets
+ * USER: lists tickets created by the current user.
+ * SUPPORT: lists tickets with status OPEN or IN_PROGRESS.
  */
 exports.getSupportTickets = asyncHandler(async (req, res, next) => {
-  const tickets = await Ticket.find({
-    status: { $in: ['OPEN', 'IN_PROGRESS'] },
-  })
+  const role = req.user.role;
+
+  let query;
+
+  if (role === 'USER') {
+    // Normal users see only their own tickets (any status)
+    query = { createdBy: req.user._id };
+  } else if (role === 'SUPPORT') {
+    // Support sees tickets that are currently actionable
+    query = {
+      status: { $in: ['OPEN', 'IN_PROGRESS'] },
+    };
+  } else {
+    const err = new Error(`Role ${role} is not allowed to view tickets`);
+    err.statusCode = 403;
+    return next(err);
+  }
+
+  const tickets = await Ticket.find(query)
     .populate('createdBy', 'name phone state')
     .sort({ createdAt: -1 })
     .lean();
+
   res.json({ success: true, count: tickets.length, data: tickets });
 });
 
