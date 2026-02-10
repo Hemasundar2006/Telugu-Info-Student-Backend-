@@ -13,8 +13,6 @@ const chatRoutes = require('./routes/chatRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const predictRoutes = require('./routes/predictRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
-const userRoutes = require('./routes/userRoutes');
-const chatRoutes = require('./routes/chatRoutes');
 const { verifyWebhook } = require('./controllers/paymentController');
 
 connectDB();
@@ -27,7 +25,6 @@ app.use(cors());
 app.use(mongoSanitize());
 app.use(express.json({ limit: '10mb' }));
 
-// ——— Routes ———
 // ——— Routes ———
 app.use('/api/auth', authRoutes);
 app.use('/api/docs', docRoutes);
