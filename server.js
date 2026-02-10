@@ -12,6 +12,7 @@ const activityRoutes = require('./routes/activityRoutes');
 const predictRoutes = require('./routes/predictRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const userRoutes = require('./routes/userRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 const { verifyWebhook } = require('./controllers/paymentController');
 
 connectDB();
@@ -31,6 +32,7 @@ app.use('/api/tickets', ticketRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api', predictRoutes); // POST /api/predict
 app.use('/api/user-profiles', userRoutes);
+app.use('/api/chats', chatRoutes);
 
 // Razorpay webhook: must verify signature using raw body (never use parsed JSON for signature).
 app.post(
