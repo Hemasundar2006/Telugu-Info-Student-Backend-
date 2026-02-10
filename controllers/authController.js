@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/UserModel');
+const UserProfile = require('../models/UserProfile');
 const asyncHandler = require('../middleware/asyncHandler');
 const { logActivity } = require('../middleware/activityLogger');
 
@@ -23,6 +24,29 @@ exports.register = asyncHandler(async (req, res, next) => {
   if (email) userData.email = email;
   if (password) userData.password = password;
   const user = await User.create(userData);
+
+  // Ensure a corresponding UserProfile exists for this user (used by frontend profile UI)
+  if (user.email && user.phone && user.name) {
+    try {
+      await UserProfile.findOneAndUpdate(
+        { email: user.email.toLowerCase() },
+        {
+          fullName: user.name,
+          email: user.email.toLowerCase(),
+          mobileNumber: user.phone,
+          isMobileVerified: false,
+        },
+        {
+          upsert: true,
+          new: true,
+          setDefaultsOnInsert: true,
+        }
+      );
+    } catch (e) {
+      // Do not block registration if profile creation fails
+    }
+  }
+
   const token = signToken(user._id);
   
   // Log registration activity

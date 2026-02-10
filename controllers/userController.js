@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const UserProfile = require('../models/UserProfile');
+const User = require('../models/UserModel');
 
 const isPlainObject = (v) =>
   v !== null && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date);
@@ -114,8 +115,27 @@ exports.getUserProfiles = async (req, res) => {
   try {
     const { email } = req.query || {};
     if (email) {
-      const profile = await UserProfile.findOne({ email: String(email).toLowerCase() }).lean();
-      if (!profile) return badRequest(res, 'User profile not found');
+      const normalizedEmail = String(email).toLowerCase();
+
+      let profile = await UserProfile.findOne({ email: normalizedEmail }).lean();
+
+      // If profile not found, try to create it on the fly from UserModel
+      if (!profile) {
+        const user = await User.findOne({ email: normalizedEmail }).lean();
+        if (!user) {
+          return badRequest(res, 'User profile not found');
+        }
+
+        const createdProfile = await UserProfile.create({
+          fullName: user.name || normalizedEmail,
+          email: normalizedEmail,
+          mobileNumber: user.phone,
+          isMobileVerified: false,
+        });
+
+        profile = createdProfile.toObject();
+      }
+
       return res.status(200).json({ success: true, data: profile });
     }
 
