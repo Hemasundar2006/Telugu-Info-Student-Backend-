@@ -11,6 +11,7 @@ const ticketRoutes = require('./routes/ticketRoutes');
 const userRoutes = require('./routes/userRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const activityRoutes = require('./routes/activityRoutes');
+const companyRoutes = require('./routes/companyRoutes');
 const predictRoutes = require('./routes/predictRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const { verifyWebhook } = require('./controllers/paymentController');
@@ -30,6 +31,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/docs', docRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api/companies', companyRoutes);
 app.use('/api', predictRoutes); // POST /api/predict
 app.use('/api/user-profiles', userRoutes);
 app.use('/api/chats', chatRoutes);
