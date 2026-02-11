@@ -2,7 +2,10 @@ const express = require('express');
 const { protect, authorize } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { companySearchSchema } = require('../validators/companyValidator');
-const { searchCompanies } = require('../controllers/companyController');
+const {
+  searchCompanies,
+  getMyCompany,
+} = require('../controllers/companyController');
 
 const router = express.Router();
 
@@ -15,6 +18,10 @@ router.get(
   validate(companySearchSchema, 'query'),
   searchCompanies
 );
+
+// GET /api/companies/me
+// Recruiter/Company account can fetch (or auto-create) its own company profile
+router.get('/me', protect, authorize('COMPANY'), getMyCompany);
 
 module.exports = router;
 

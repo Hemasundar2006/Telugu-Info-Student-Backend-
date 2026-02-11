@@ -75,3 +75,32 @@ exports.searchCompanies = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * GET /api/companies/me
+ * Return the company linked to the logged-in recruiter (role = COMPANY).
+ * If none exists yet, auto-create a minimal pending profile so it can go for approval.
+ * Access: COMPANY
+ */
+exports.getMyCompany = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  let company = await Company.findOne({ userId });
+
+  if (!company) {
+    // Auto-create a minimal pending company profile for this recruiter
+    company = await Company.create({
+      userId,
+      email: req.user.email,
+      phoneNumber: req.user.phone,
+      accountType: 'company',
+      companyName: req.body.companyName || req.user.name || undefined,
+      verificationStatus: 'pending',
+    });
+  }
+
+  res.json({
+    success: true,
+    data: company,
+  });
+});
+
