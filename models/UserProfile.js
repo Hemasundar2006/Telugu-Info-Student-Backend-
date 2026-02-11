@@ -261,6 +261,36 @@ const userProfileSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+
+    // L. Job-focused student profile enhancements
+    resumeUrl: {
+      type: String,
+      trim: true,
+    },
+    experienceLevel: {
+      type: String,
+      trim: true, // e.g. FRESHER/JUNIOR/SENIOR/LEAD
+    },
+    collegeName: {
+      type: String,
+      trim: true,
+    },
+    degree: {
+      type: String,
+      trim: true,
+    },
+    graduationYear: {
+      type: Number,
+    },
+    gpa: {
+      type: Number,
+      min: 0,
+      max: 10,
+    },
+    linkedInUrl: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,

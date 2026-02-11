@@ -12,9 +12,10 @@ const signToken = (id) =>
 /**
  * POST /api/auth/register
  * Body: name, phone, state, role (optional, default USER), email, password (optional)
+ * For recruiters/companies (role = COMPANY) you can also send companyName.
  */
 exports.register = asyncHandler(async (req, res, next) => {
-  const { name, phone, state, role, email, password } = req.body;
+  const { name, phone, state, role, email, password, companyName } = req.body;
   const userData = {
     name,
     phone,
@@ -24,6 +25,22 @@ exports.register = asyncHandler(async (req, res, next) => {
   if (email) userData.email = email;
   if (password) userData.password = password;
   const user = await User.create(userData);
+
+  // If this is a recruiter/company account, create a basic Company linked to this user
+  if (user.role === 'COMPANY' && companyName) {
+    try {
+      const Company = require('../models/CompanyModel');
+      await Company.create({
+        userId: user._id,
+        companyName,
+        email: user.email,
+        phone: user.phone,
+        verificationStatus: 'PENDING',
+      });
+    } catch (e) {
+      // Do not block registration if company creation fails
+    }
+  }
 
   // Ensure a corresponding UserProfile exists for this user (used by frontend profile UI)
   if (user.email && user.phone && user.name) {

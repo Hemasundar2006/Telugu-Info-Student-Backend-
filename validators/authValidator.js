@@ -1,12 +1,38 @@
 const Joi = require('joi');
 
 const registerSchema = Joi.object({
-  name: Joi.string().required().trim(),
-  phone: Joi.string().required().trim(),
+  // Common fields for all accounts
+  name: Joi.string().required().trim(), // recruiter / user name
+  phone: Joi.string().required().trim(), // mobile number
   state: Joi.string().valid('AP', 'TS').default('AP'),
-  role: Joi.string().valid('USER', 'SUPPORT', 'ADMIN', 'SUPER_ADMIN').default('USER'),
-  email: Joi.string().email().trim().lowercase().optional(),
-  password: Joi.string().min(6).optional(),
+  role: Joi.string()
+    .valid('USER', 'COMPANY', 'SUPPORT', 'ADMIN', 'SUPER_ADMIN')
+    .default('USER'),
+  // Extra field for recruiter/company accounts
+  companyName: Joi.string()
+    .trim()
+    .when('role', {
+      is: 'COMPANY',
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    }),
+  // For recruiters/companies we want a proper company email + password
+  email: Joi.string()
+    .email()
+    .trim()
+    .lowercase()
+    .when('role', {
+      is: 'COMPANY',
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    }),
+  password: Joi.string()
+    .min(6)
+    .when('role', {
+      is: 'COMPANY',
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    }),
 });
 
 const loginSchema = Joi.object({
