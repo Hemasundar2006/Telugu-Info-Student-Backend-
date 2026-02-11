@@ -9,7 +9,7 @@ const activitySchema = new mongoose.Schema(
     },
     userRole: {
       type: String,
-      enum: ['USER', 'SUPPORT', 'ADMIN', 'SUPER_ADMIN'],
+      enum: ['USER', 'COMPANY', 'SUPPORT', 'ADMIN', 'SUPER_ADMIN'],
       required: true,
     },
     userName: {
