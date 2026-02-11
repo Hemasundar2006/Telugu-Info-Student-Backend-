@@ -5,6 +5,7 @@ const { companySearchSchema } = require('../validators/companyValidator');
 const {
   searchCompanies,
   getMyCompany,
+  verifyCompany,
 } = require('../controllers/companyController');
 
 const router = express.Router();
@@ -22,6 +23,15 @@ router.get(
 // GET /api/companies/me
 // Recruiter/Company account can fetch (or auto-create) its own company profile
 router.get('/me', protect, authorize('COMPANY'), getMyCompany);
+
+// POST /api/companies/:companyId/verify
+// Super admin / admin approves or rejects a company
+router.post(
+  '/:companyId/verify',
+  protect,
+  authorize('ADMIN', 'SUPER_ADMIN'),
+  verifyCompany
+);
 
 module.exports = router;
 

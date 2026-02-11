@@ -104,3 +104,58 @@ exports.getMyCompany = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * POST /api/companies/:companyId/verify
+ * Body: { verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED', reason?: string }
+ * Access: ADMIN / SUPER_ADMIN
+ */
+exports.verifyCompany = asyncHandler(async (req, res, next) => {
+  const { companyId } = req.params;
+  const { verificationStatus, reason } = req.body || {};
+
+  if (!verificationStatus) {
+    const err = new Error('verificationStatus is required');
+    err.statusCode = 400;
+    return next(err);
+  }
+
+  const allowed = ['PENDING', 'VERIFIED', 'REJECTED'];
+  if (!allowed.includes(verificationStatus)) {
+    const err = new Error(
+      `verificationStatus must be one of ${allowed.join(', ')}`
+    );
+    err.statusCode = 400;
+    return next(err);
+  }
+
+  const mappedStatus = verificationStatus.toLowerCase(); // -> pending/verified/rejected
+
+  const company = await Company.findByIdAndUpdate(
+    companyId,
+    {
+      verificationStatus: mappedStatus,
+    },
+    { new: true }
+  );
+
+  if (!company) {
+    const err = new Error('Company not found');
+    err.statusCode = 404;
+    return next(err);
+  }
+
+  // Optionally you could log activity here later
+
+  res.json({
+    success: true,
+    data: company,
+    message:
+      mappedStatus === 'verified'
+        ? 'Company approved successfully'
+        : mappedStatus === 'rejected'
+        ? 'Company rejected'
+        : 'Company set to pending',
+    reason: reason || undefined,
+  });
+});
+
