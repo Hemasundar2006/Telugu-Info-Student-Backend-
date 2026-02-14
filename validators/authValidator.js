@@ -3,7 +3,7 @@ const Joi = require('joi');
 const registerSchema = Joi.object({
   // Common fields for all accounts
   name: Joi.string().required().trim(), // recruiter / user name
-  phone: Joi.string().required().trim(), // mobile number
+  phone: Joi.string().required().trim().pattern(/^\d{10}$/).message('Phone must be exactly 10 digits'),
   state: Joi.string().valid('AP', 'TS').default('AP'),
   role: Joi.string()
     .valid('USER', 'COMPANY', 'SUPPORT', 'ADMIN', 'SUPER_ADMIN')
@@ -17,12 +17,13 @@ const registerSchema = Joi.object({
       otherwise: Joi.optional(),
     }),
   // For recruiters/companies we want a proper company email + password
+  // For students (USER) we need email to create Student profile for job notifications
   email: Joi.string()
     .email()
     .trim()
     .lowercase()
     .when('role', {
-      is: 'COMPANY',
+      is: Joi.valid('COMPANY', 'USER'),
       then: Joi.required(),
       otherwise: Joi.optional(),
     }),
@@ -30,6 +31,14 @@ const registerSchema = Joi.object({
     .min(6)
     .when('role', {
       is: 'COMPANY',
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    }),
+  // For students (USER): qualification is required so job notifications can target by qualification
+  qualification: Joi.string()
+    .valid('10th', '12th', 'Diploma', 'B.Tech', 'B.Sc', 'B.Com', 'B.A', 'MBA', 'M.Tech')
+    .when('role', {
+      is: 'USER',
       then: Joi.required(),
       otherwise: Joi.optional(),
     }),

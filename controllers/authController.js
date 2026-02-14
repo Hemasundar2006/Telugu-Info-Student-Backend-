@@ -13,9 +13,10 @@ const signToken = (id) =>
  * POST /api/auth/register
  * Body: name, phone, state, role (optional, default USER), email, password (optional)
  * For recruiters/companies (role = COMPANY) you can also send companyName.
+ * For students (role = USER) send qualification (required) and email (required) so job notifications can target by qualification.
  */
 exports.register = asyncHandler(async (req, res, next) => {
-  const { name, phone, state, role, email, password, companyName } = req.body;
+  const { name, phone, state, role, email, password, companyName, qualification } = req.body;
   const userData = {
     name,
     phone,
@@ -39,6 +40,23 @@ exports.register = asyncHandler(async (req, res, next) => {
       });
     } catch (e) {
       // Do not block registration if company creation fails
+    }
+  }
+
+  // If this is a student (USER) with qualification and email, create Student profile for job notifications
+  if (user.role === 'USER' && user.email && qualification) {
+    try {
+      const Student = require('../models/Student');
+      const studentId = `STU-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      await Student.create({
+        studentId,
+        name: user.name,
+        email: user.email.toLowerCase(),
+        phone: user.phone,
+        qualification,
+      });
+    } catch (e) {
+      // Do not block registration if student creation fails
     }
   }
 
