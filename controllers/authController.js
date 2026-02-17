@@ -60,8 +60,9 @@ exports.register = asyncHandler(async (req, res, next) => {
     }
   }
 
-  // Ensure a corresponding UserProfile exists for this user (used by frontend profile UI)
-  if (user.email && user.phone && user.name) {
+  // Ensure a corresponding UserProfile exists for STUDENT users only (role = USER),
+  // so company accounts do not appear in the student/user profile collection.
+  if (user.role === 'USER' && user.email && user.phone && user.name) {
     try {
       await UserProfile.findOneAndUpdate(
         { email: user.email.toLowerCase() },
