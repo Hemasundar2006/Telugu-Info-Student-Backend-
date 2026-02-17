@@ -103,6 +103,12 @@ const companySchema = new mongoose.Schema(
       index: true,
     },
     verificationDocuments: [{ type: String, trim: true }],
+    verifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    verifiedAt: { type: Date },
+    verificationNote: { type: String, trim: true },
     emailVerified: { type: Boolean, default: false },
 
     // Stats (auto-generated)

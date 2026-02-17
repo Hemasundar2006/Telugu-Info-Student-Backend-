@@ -70,6 +70,8 @@ exports.searchCompanies = asyncHandler(async (req, res) => {
       companySize: c.companySize,
       website: c.website,
       verificationStatus: c.verificationStatus,
+      verifiedBy: c.verifiedBy,
+      verifiedAt: c.verifiedAt,
       createdAt: c.createdAt,
     })),
   });
@@ -105,9 +107,67 @@ exports.getMyCompany = asyncHandler(async (req, res) => {
 });
 
 /**
+ * PUT /api/companies/me
+ * Update the company profile linked to the logged-in recruiter.
+ * After a company has been approved (verified), any profile edit will reset
+ * verificationStatus back to pending so that SUPER_ADMIN can re-approve.
+ * Access: COMPANY
+ */
+exports.updateMyCompany = asyncHandler(async (req, res, next) => {
+  const userId = req.user._id;
+
+  let company = await Company.findOne({ userId });
+
+  if (!company) {
+    // Ensure a base company exists before updating
+    company = await Company.create({
+      userId,
+      email: req.user.email,
+      phoneNumber: req.user.phone,
+      accountType: 'company',
+      companyName: req.body.companyName || req.user.name || undefined,
+      verificationStatus: 'pending',
+    });
+  }
+
+  const payload = { ...req.body };
+
+  // Prevent client from manually changing verification fields or ownership
+  ['verificationStatus', 'verifiedBy', 'verifiedAt', 'verificationNote', 'userId', 'email'].forEach(
+    (field) => {
+      if (field in payload) {
+        delete payload[field];
+      }
+    }
+  );
+
+  // If this company is already verified and they edit profile, move back to pending
+  if (company.verificationStatus === 'verified') {
+    payload.verificationStatus = 'pending';
+    payload.verifiedBy = undefined;
+    payload.verifiedAt = undefined;
+  }
+
+  const updated = await Company.findOneAndUpdate(
+    { userId },
+    { $set: payload },
+    { new: true, runValidators: true }
+  );
+
+  res.json({
+    success: true,
+    message:
+      company.verificationStatus === 'verified'
+        ? 'Profile updated. Verification set to pending for re-approval.'
+        : 'Profile updated successfully.',
+    data: updated,
+  });
+});
+
+/**
  * POST /api/companies/:companyId/verify
  * Body: { verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED', reason?: string }
- * Access: ADMIN / SUPER_ADMIN
+ * Access: SUPER_ADMIN only
  */
 exports.verifyCompany = asyncHandler(async (req, res, next) => {
   const { companyId } = req.params;
@@ -130,13 +190,7 @@ exports.verifyCompany = asyncHandler(async (req, res, next) => {
 
   const mappedStatus = verificationStatus.toLowerCase(); // -> pending/verified/rejected
 
-  const company = await Company.findByIdAndUpdate(
-    companyId,
-    {
-      verificationStatus: mappedStatus,
-    },
-    { new: true }
-  );
+  const company = await Company.findById(companyId);
 
   if (!company) {
     const err = new Error('Company not found');
@@ -144,7 +198,21 @@ exports.verifyCompany = asyncHandler(async (req, res, next) => {
     return next(err);
   }
 
-  // Optionally you could log activity here later
+  company.verificationStatus = mappedStatus;
+
+  if (mappedStatus === 'verified') {
+    company.verifiedBy = req.user._id;
+    company.verifiedAt = new Date();
+  } else {
+    company.verifiedBy = undefined;
+    company.verifiedAt = undefined;
+  }
+
+  if (typeof reason === 'string' && reason.trim()) {
+    company.verificationNote = reason.trim();
+  }
+
+  await company.save();
 
   res.json({
     success: true,

@@ -5,6 +5,7 @@ const { companySearchSchema } = require('../validators/companyValidator');
 const {
   searchCompanies,
   getMyCompany,
+  updateMyCompany,
   verifyCompany,
 } = require('../controllers/companyController');
 
@@ -24,12 +25,17 @@ router.get(
 // Recruiter/Company account can fetch (or auto-create) its own company profile
 router.get('/me', protect, authorize('COMPANY'), getMyCompany);
 
+// PUT /api/companies/me
+// Recruiter/Company account can update its own company profile.
+// If the profile was already verified, edits will move it back to pending for re-approval.
+router.put('/me', protect, authorize('COMPANY'), updateMyCompany);
+
 // POST /api/companies/:companyId/verify
-// Super admin / admin approves or rejects a company
+// Super admin approves or rejects a company
 router.post(
   '/:companyId/verify',
   protect,
-  authorize('ADMIN', 'SUPER_ADMIN'),
+  authorize('SUPER_ADMIN'),
   verifyCompany
 );
 
