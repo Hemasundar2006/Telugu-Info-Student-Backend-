@@ -3,6 +3,7 @@ const { protect, authorize } = require('../middleware/auth');
 const {
   createPost,
   getFeed,
+  getUserPosts,
   updatePost,
   deletePost,
   toggleLike,
@@ -19,17 +20,20 @@ const router = express.Router();
 // All post routes require authentication
 router.use(protect);
 
-// Create a new post (COMPANY only)
-router.post('/', authorize('COMPANY'), createPost);
+// Create a new post (COMPANY and USER)
+router.post('/', authorize('COMPANY', 'USER'), createPost);
 
 // Get feed (all authenticated users: students, companies, admins)
 router.get('/feed', getFeed);
 
-// Update post (COMPANY only, author only)
-router.put('/:postId', authorize('COMPANY'), updatePost);
+// Get posts for a specific user (profile \"Posts\" section)
+router.get('/user/:userId', getUserPosts);
 
-// Delete post (COMPANY only, author only)
-router.delete('/:postId', authorize('COMPANY'), deletePost);
+// Update post (COMPANY and USER, author only)
+router.put('/:postId', authorize('COMPANY', 'USER'), updatePost);
+
+// Delete post (COMPANY and USER, author only)
+router.delete('/:postId', authorize('COMPANY', 'USER'), deletePost);
 
 // View likes (all authenticated users)
 router.get('/:postId/likes', getLikes);
@@ -49,8 +53,8 @@ router.get('/:postId/comments', getComments);
 // Share (USER only - students)
 router.post('/:postId/share', authorize('USER'), sharePost);
 
-// Share tracking (COMPANY only)
-router.get('/:postId/shares', authorize('COMPANY'), getShares);
+// Share tracking (author only: COMPANY or USER)
+router.get('/:postId/shares', authorize('COMPANY', 'USER'), getShares);
 
 module.exports = router;
 

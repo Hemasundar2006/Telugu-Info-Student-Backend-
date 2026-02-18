@@ -17,7 +17,7 @@ const parsePageLimit = (query) => {
  * POST /api/posts
  * Create a new post: author, media image URL, description, and optional link preview.
  * Body: { text?, imageUrl?, linkPreview?: { url, title, description, image } }
- * Access: COMPANY accounts only (enforced in routes)
+ * Access: COMPANY and USER accounts (enforced in routes)
  */
 exports.createPost = asyncHandler(async (req, res, next) => {
   const { text, imageUrl, linkPreview } = req.body || {};
@@ -79,9 +79,9 @@ exports.createPost = asyncHandler(async (req, res, next) => {
 
 /**
  * PUT /api/posts/:postId
- * Update a post. Only the post author (COMPANY) can update.
+ * Update a post. Only the post author can update.
  * Body: { text?, imageUrl?, linkPreview?: { url, title, description, image } }
- * Access: COMPANY only; must be the author of the post.
+ * Access: COMPANY/USER; must be the author of the post.
  */
 exports.updatePost = asyncHandler(async (req, res, next) => {
   const { postId } = req.params;
@@ -139,7 +139,7 @@ exports.updatePost = asyncHandler(async (req, res, next) => {
     'POST_UPDATE',
     'POST',
     post._id,
-    'Company updated a post',
+    'User updated a post',
     {}
   );
 
@@ -164,8 +164,8 @@ exports.updatePost = asyncHandler(async (req, res, next) => {
 
 /**
  * DELETE /api/posts/:postId
- * Delete a post. Only the post author (COMPANY) can delete.
- * Access: COMPANY only; must be the author of the post.
+ * Delete a post. Only the post author can delete.
+ * Access: COMPANY/USER; must be the author of the post.
  */
 exports.deletePost = asyncHandler(async (req, res, next) => {
   const { postId } = req.params;
@@ -196,7 +196,7 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
     'POST_DELETE',
     'POST',
     post._id,
-    'Company deleted a post',
+    'User deleted a post',
     {}
   );
 
@@ -223,6 +223,72 @@ exports.getFeed = asyncHandler(async (req, res) => {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     filter.createdAt = { $gte: since };
   }
+
+  const [total, posts] = await Promise.all([
+    Post.countDocuments(filter),
+    Post.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('author', 'name email role profileImage'),
+  ]);
+
+  const currentUserId = String(req.user._id);
+
+  const data = posts.map((p) => {
+    const likedByMe = p.likes.some((id) => String(id) === currentUserId);
+    const savedByMe = p.saves.some((id) => String(id) === currentUserId);
+    return {
+      id: p._id,
+      author: {
+        id: p.author._id,
+        name: p.author.name,
+        email: p.author.email,
+        role: p.author.role,
+        profileImage: p.author.profileImage,
+      },
+      imageUrl: p.imageUrl,
+      description: p.text,
+      previewlink: p.linkPreview,
+      likesCount: p.likes.length,
+      commentsCount: p.commentsCount,
+      shareCount: p.shareCount,
+      likedByMe,
+      savedByMe,
+      createdAt: p.createdAt,
+    };
+  });
+
+  res.json({
+    success: true,
+    page,
+    pages: Math.ceil(total / limit) || 1,
+    count: data.length,
+    total,
+    data,
+  });
+});
+
+/**
+ * GET /api/posts/user/:userId
+ * Get a paginated list of posts created by a specific user (student or company).
+ * Used for profile \"Posts\" section.
+ * Query:
+ *   - page, limit
+ * Access: any authenticated user.
+ */
+exports.getUserPosts = asyncHandler(async (req, res, next) => {
+  const { userId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    const err = new Error('Invalid userId');
+    err.statusCode = 400;
+    return next(err);
+  }
+
+  const { page, limit } = parsePageLimit(req.query || {});
+  const skip = (page - 1) * limit;
+
+  const filter = { author: userId };
 
   const [total, posts] = await Promise.all([
     Post.countDocuments(filter),
@@ -546,7 +612,7 @@ exports.sharePost = asyncHandler(async (req, res, next) => {
 /**
  * GET /api/posts/:postId/shares
  * Returns share tracking info for a post (who shared it and when).
- * Access: COMPANY accounts only (enforced in routes)
+ * Access: COMPANY/USER (author only; enforced in controller)
  */
 exports.getShares = asyncHandler(async (req, res, next) => {
   const { postId } = req.params;
@@ -563,6 +629,13 @@ exports.getShares = asyncHandler(async (req, res, next) => {
   if (!post) {
     const err = new Error('Post not found');
     err.statusCode = 404;
+    return next(err);
+  }
+
+  // Only the post author can view share tracking
+  if (String(post.author) !== String(req.user._id)) {
+    const err = new Error('You can only view share tracking for your own posts');
+    err.statusCode = 403;
     return next(err);
   }
 
