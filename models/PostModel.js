@@ -19,11 +19,17 @@ const postSchema = new mongoose.Schema(
       index: true,
     },
 
-    // Main text content of the post
+    // Main text content of the post (description below the image)
     text: {
       type: String,
       trim: true,
       maxlength: 2000,
+    },
+
+    // Main media image URL (displayed below author, like Instagram post image)
+    imageUrl: {
+      type: String,
+      trim: true,
     },
 
     // Optional link preview (like LinkedIn URL card)

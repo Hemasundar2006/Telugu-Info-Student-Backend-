@@ -15,15 +15,15 @@ const parsePageLimit = (query) => {
 
 /**
  * POST /api/posts
- * Create a new LinkedIn-style post.
- * Body: { text?, linkPreview?: { url, title, description, image } }
+ * Create a new post: author, media image URL, description, and optional link preview.
+ * Body: { text?, imageUrl?, linkPreview?: { url, title, description, image } }
  * Access: COMPANY accounts only (enforced in routes)
  */
 exports.createPost = asyncHandler(async (req, res, next) => {
-  const { text, linkPreview } = req.body || {};
+  const { text, imageUrl, linkPreview } = req.body || {};
 
-  if (!text && !linkPreview?.url) {
-    const err = new Error('Post must have text or linkPreview.url');
+  if (!text && !linkPreview?.url && !imageUrl?.trim()) {
+    const err = new Error('Post must have text, imageUrl, or linkPreview.url');
     err.statusCode = 400;
     return next(err);
   }
@@ -41,6 +41,7 @@ exports.createPost = asyncHandler(async (req, res, next) => {
   const post = await Post.create({
     author: req.user._id,
     text: text ? String(text).trim() : undefined,
+    imageUrl: imageUrl ? String(imageUrl).trim() : undefined,
     linkPreview: cleanedLinkPreview,
   });
 
@@ -50,21 +51,158 @@ exports.createPost = asyncHandler(async (req, res, next) => {
     'POST',
     post._id,
     'User created a post',
-    { hasLinkPreview: !!cleanedLinkPreview }
+    { hasLinkPreview: !!cleanedLinkPreview, hasImageUrl: !!post.imageUrl }
   );
+
+  const authorPayload = {
+    id: req.user._id,
+    name: req.user.name,
+    email: req.user.email,
+    role: req.user.role,
+    profileImage: req.user.profileImage,
+  };
 
   res.status(201).json({
     success: true,
     data: {
-      author: {
-        id: req.user._id,
-        name: req.user.name,
-        email: req.user.email,
-        role: req.user.role,
-      },
-      previewlink: post.linkPreview,
+      id: post._id,
+      author: authorPayload,
+      imageUrl: post.imageUrl,
       description: post.text,
+      previewlink: post.linkPreview,
+      likesCount: 0,
+      commentsCount: 0,
+      shareCount: 0,
     },
+  });
+});
+
+/**
+ * PUT /api/posts/:postId
+ * Update a post. Only the post author (COMPANY) can update.
+ * Body: { text?, imageUrl?, linkPreview?: { url, title, description, image } }
+ * Access: COMPANY only; must be the author of the post.
+ */
+exports.updatePost = asyncHandler(async (req, res, next) => {
+  const { postId } = req.params;
+  const { text, imageUrl, linkPreview } = req.body || {};
+
+  if (!mongoose.Types.ObjectId.isValid(postId)) {
+    const err = new Error('Invalid postId');
+    err.statusCode = 400;
+    return next(err);
+  }
+
+  const post = await Post.findById(postId);
+  if (!post) {
+    const err = new Error('Post not found');
+    err.statusCode = 404;
+    return next(err);
+  }
+
+  if (String(post.author) !== String(req.user._id)) {
+    const err = new Error('You can only edit your own posts');
+    err.statusCode = 403;
+    return next(err);
+  }
+
+  if (text !== undefined) post.text = text ? String(text).trim() : undefined;
+  if (imageUrl !== undefined) post.imageUrl = imageUrl ? String(imageUrl).trim() : undefined;
+
+  if (linkPreview !== undefined) {
+    if (linkPreview && linkPreview.url) {
+      post.linkPreview = {
+        url: String(linkPreview.url).trim(),
+        title: linkPreview.title?.trim() || undefined,
+        description: linkPreview.description?.trim() || undefined,
+        image: linkPreview.image?.trim() || undefined,
+      };
+    } else {
+      post.linkPreview = undefined;
+    }
+  }
+
+  const hasContent =
+    (post.text && post.text.length > 0) ||
+    (post.imageUrl && post.imageUrl.length > 0) ||
+    (post.linkPreview && post.linkPreview.url);
+  if (!hasContent) {
+    const err = new Error('Post must have text, imageUrl, or linkPreview.url');
+    err.statusCode = 400;
+    return next(err);
+  }
+
+  await post.save();
+
+  await logActivity(
+    req,
+    'POST_UPDATE',
+    'POST',
+    post._id,
+    'Company updated a post',
+    {}
+  );
+
+  const updated = await Post.findById(postId).populate('author', 'name email role profileImage');
+
+  res.json({
+    success: true,
+    message: 'Post updated successfully',
+    data: {
+      id: updated._id,
+      author: updated.author,
+      imageUrl: updated.imageUrl,
+      description: updated.text,
+      previewlink: updated.linkPreview,
+      likesCount: updated.likes.length,
+      commentsCount: updated.commentsCount,
+      shareCount: updated.shareCount,
+      updatedAt: updated.updatedAt,
+    },
+  });
+});
+
+/**
+ * DELETE /api/posts/:postId
+ * Delete a post. Only the post author (COMPANY) can delete.
+ * Access: COMPANY only; must be the author of the post.
+ */
+exports.deletePost = asyncHandler(async (req, res, next) => {
+  const { postId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(postId)) {
+    const err = new Error('Invalid postId');
+    err.statusCode = 400;
+    return next(err);
+  }
+
+  const post = await Post.findById(postId);
+  if (!post) {
+    const err = new Error('Post not found');
+    err.statusCode = 404;
+    return next(err);
+  }
+
+  if (String(post.author) !== String(req.user._id)) {
+    const err = new Error('You can only delete your own posts');
+    err.statusCode = 403;
+    return next(err);
+  }
+
+  await Post.findByIdAndDelete(postId);
+
+  await logActivity(
+    req,
+    'POST_DELETE',
+    'POST',
+    post._id,
+    'Company deleted a post',
+    {}
+  );
+
+  res.json({
+    success: true,
+    message: 'Post deleted successfully',
   });
 });
 
@@ -92,14 +230,34 @@ exports.getFeed = asyncHandler(async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('author', 'name email role'),
+      .populate('author', 'name email role profileImage'),
   ]);
 
-  const data = posts.map((p) => ({
-    author: p.author,
-    previewlink: p.linkPreview,
-    description: p.text,
-  }));
+  const currentUserId = String(req.user._id);
+
+  const data = posts.map((p) => {
+    const likedByMe = p.likes.some((id) => String(id) === currentUserId);
+    const savedByMe = p.saves.some((id) => String(id) === currentUserId);
+    return {
+      id: p._id,
+      author: {
+        id: p.author._id,
+        name: p.author.name,
+        email: p.author.email,
+        role: p.author.role,
+        profileImage: p.author.profileImage,
+      },
+      imageUrl: p.imageUrl,
+      description: p.text,
+      previewlink: p.linkPreview,
+      likesCount: p.likes.length,
+      commentsCount: p.commentsCount,
+      shareCount: p.shareCount,
+      likedByMe,
+      savedByMe,
+      createdAt: p.createdAt,
+    };
+  });
 
   res.json({
     success: true,
@@ -360,6 +518,7 @@ exports.sharePost = asyncHandler(async (req, res, next) => {
   const sharedPost = await Post.create({
     author: req.user._id,
     text: text ? String(text).trim() : undefined,
+    imageUrl: original.imageUrl,
     linkPreview: cleanedLinkPreview || original.linkPreview,
     sharedFrom: original._id,
   });

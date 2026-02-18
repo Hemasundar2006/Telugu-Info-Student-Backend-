@@ -3,6 +3,8 @@ const { protect, authorize } = require('../middleware/auth');
 const {
   createPost,
   getFeed,
+  updatePost,
+  deletePost,
   toggleLike,
   toggleSave,
   addComment,
@@ -22,6 +24,12 @@ router.post('/', authorize('COMPANY'), createPost);
 
 // Get feed (all authenticated users: students, companies, admins)
 router.get('/feed', getFeed);
+
+// Update post (COMPANY only, author only)
+router.put('/:postId', authorize('COMPANY'), updatePost);
+
+// Delete post (COMPANY only, author only)
+router.delete('/:postId', authorize('COMPANY'), deletePost);
 
 // View likes (all authenticated users)
 router.get('/:postId/likes', getLikes);

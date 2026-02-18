@@ -1,4 +1,5 @@
 const Company = require('../models/CompanyModel');
+const User = require('../models/UserModel');
 const asyncHandler = require('../middleware/asyncHandler');
 
 /**
@@ -153,6 +154,13 @@ exports.updateMyCompany = asyncHandler(async (req, res, next) => {
     { $set: payload },
     { new: true, runValidators: true }
   );
+
+  // Sync recruiter profile photo to User.profileImage so it shows as author avatar on posts
+  if (updated.recruiter?.photo) {
+    await User.findByIdAndUpdate(userId, {
+      profileImage: updated.recruiter.photo.trim(),
+    });
+  }
 
   res.json({
     success: true,

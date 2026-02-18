@@ -145,6 +145,14 @@ exports.updateUserProfile = async (req, res) => {
       return badRequest(res, 'User profile not found');
     }
 
+    // When profile photo is updated via link, sync to User.profileImage so it shows on posts
+    if ('profilePhoto' in $set && updated.email) {
+      await User.findOneAndUpdate(
+        { email: updated.email.toLowerCase() },
+        { profileImage: updated.profilePhoto || null }
+      );
+    }
+
     return res.status(200).json({ success: true, data: updated });
   } catch (err) {
     if (err && (err.code === 11000 || err.name === 'ValidationError')) {

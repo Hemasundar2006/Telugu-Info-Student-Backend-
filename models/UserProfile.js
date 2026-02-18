@@ -8,6 +8,11 @@ const userProfileSchema = new mongoose.Schema(
       trim: true,
       required: [true, 'fullName is required'],
     },
+    // Profile photo URL (link) – shown in profile section and synced to User for posts
+    profilePhoto: {
+      type: String,
+      trim: true,
+    },
     bio: {
       type: String,
       trim: true,

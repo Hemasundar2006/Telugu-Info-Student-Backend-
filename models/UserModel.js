@@ -34,6 +34,11 @@ const userSchema = new mongoose.Schema(
       enum: ['AP', 'TS'],
       required: [true, 'State (AP or TS) is required'],
     },
+    // Profile/avatar image URL (shown next to author name on posts)
+    profileImage: {
+      type: String,
+      trim: true,
+    },
     tier: {
       type: String,
       enum: ['FREE', '1_RUPEE', '9_RUPEE'],

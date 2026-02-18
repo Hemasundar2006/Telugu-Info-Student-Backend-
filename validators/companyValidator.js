@@ -7,6 +7,7 @@ const companySearchSchema = Joi.object({
   location: Joi.string().trim().optional(),
   verificationStatus: Joi.string()
     .valid('PENDING', 'VERIFIED', 'REJECTED')
+    .insensitive()
     .optional(),
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(50).default(10),
