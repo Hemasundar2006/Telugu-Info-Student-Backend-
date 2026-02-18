@@ -44,6 +44,33 @@ const userSchema = new mongoose.Schema(
       enum: ['FREE', '1_RUPEE', '9_RUPEE'],
       default: 'FREE',
     },
+    // Subscription / plan information (used for paid badge)
+    plan: {
+      name: {
+        type: String,
+        trim: true,
+        default: 'FREE',
+      },
+      isPaid: {
+        type: Boolean,
+        default: false,
+      },
+      startedAt: {
+        type: Date,
+      },
+      expiresAt: {
+        type: Date,
+      },
+    },
+    // Convenience flags so frontend can simply check user.hasPaidPlan or user.isPaid
+    hasPaidPlan: {
+      type: Boolean,
+      default: false,
+    },
+    isPaid: {
+      type: Boolean,
+      default: false,
+    },
     purchasedItems: [
       {
         type: mongoose.Schema.Types.ObjectId,

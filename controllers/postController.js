@@ -143,7 +143,10 @@ exports.updatePost = asyncHandler(async (req, res, next) => {
     {}
   );
 
-  const updated = await Post.findById(postId).populate('author', 'name email role profileImage');
+  const updated = await Post.findById(postId).populate(
+    'author',
+    'name email role profileImage plan hasPaidPlan isPaid'
+  );
 
   res.json({
     success: true,
@@ -230,7 +233,7 @@ exports.getFeed = asyncHandler(async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('author', 'name email role profileImage'),
+      .populate('author', 'name email role profileImage plan hasPaidPlan isPaid'),
   ]);
 
   const currentUserId = String(req.user._id);
@@ -246,6 +249,9 @@ exports.getFeed = asyncHandler(async (req, res) => {
         email: p.author.email,
         role: p.author.role,
         profileImage: p.author.profileImage,
+        plan: p.author.plan,
+        hasPaidPlan: p.author.hasPaidPlan,
+        isPaid: p.author.isPaid,
       },
       imageUrl: p.imageUrl,
       description: p.text,
@@ -296,7 +302,7 @@ exports.getUserPosts = asyncHandler(async (req, res, next) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('author', 'name email role profileImage'),
+      .populate('author', 'name email role profileImage plan hasPaidPlan isPaid'),
   ]);
 
   const currentUserId = String(req.user._id);

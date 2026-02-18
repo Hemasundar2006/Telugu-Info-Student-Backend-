@@ -201,7 +201,9 @@ exports.getUserProfileDetails = asyncHandler(async (req, res, next) => {
     return next(err);
   }
 
-  const user = await User.findById(userId).select('name email role profileImage state');
+  const user = await User.findById(userId).select(
+    'name email role profileImage state plan hasPaidPlan isPaid'
+  );
   if (!user) {
     const err = new Error('User not found');
     err.statusCode = 404;
@@ -262,6 +264,9 @@ exports.getUserProfileDetails = asyncHandler(async (req, res, next) => {
       followingCount,
       postsCount,
       isFollowing: !!isFollowing,
+      plan: user.plan,
+      hasPaidPlan: user.hasPaidPlan,
+      isPaid: user.isPaid,
       details,
     },
   });

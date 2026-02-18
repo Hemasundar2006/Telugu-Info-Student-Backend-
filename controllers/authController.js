@@ -89,7 +89,22 @@ exports.register = asyncHandler(async (req, res, next) => {
   req.user = { _id: user._id, role: user.role, name: user.name };
   await logActivity(req, 'REGISTER', 'AUTH', user._id, `User registered: ${user.name} (${user.role})`, { email: user.email, phone: user.phone });
   
-  res.status(201).json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, state: user.state, tier: user.tier } });
+  res.status(201).json({
+    success: true,
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      state: user.state,
+      tier: user.tier,
+      plan: user.plan,
+      hasPaidPlan: user.hasPaidPlan,
+      isPaid: user.isPaid,
+    },
+  });
 });
 
 /**
@@ -134,5 +149,20 @@ exports.login = asyncHandler(async (req, res, next) => {
   req.user = { _id: user._id, role: user.role, name: user.name };
   await logActivity(req, 'LOGIN', 'AUTH', user._id, `User logged in: ${user.name} (${user.role})`, { email: user.email, phone: user.phone, loginMethod: email ? 'email' : 'phone' });
   
-  res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, state: user.state, tier: user.tier } });
+  res.json({
+    success: true,
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      state: user.state,
+      tier: user.tier,
+      plan: user.plan,
+      hasPaidPlan: user.hasPaidPlan,
+      isPaid: user.isPaid,
+    },
+  });
 });
