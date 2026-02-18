@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const Follow = require('../models/FollowModel');
 const User = require('../models/UserModel');
 const Post = require('../models/PostModel');
+const Company = require('../models/CompanyModel');
+const UserProfile = require('../models/UserProfile');
 const asyncHandler = require('../middleware/asyncHandler');
 const { logActivity } = require('../middleware/activityLogger');
 
@@ -158,6 +160,110 @@ exports.getFollowing = asyncHandler(async (req, res, next) => {
       following: r.following,
       createdAt: r.createdAt,
     })),
+  });
+});
+
+/**
+ * GET /api/follows/:targetUserId/status
+ * Returns whether the current user follows the target.
+ * Access: any authenticated user.
+ */
+exports.getFollowStatus = asyncHandler(async (req, res, next) => {
+  const { targetUserId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+    const err = new Error('Invalid targetUserId');
+    err.statusCode = 400;
+    return next(err);
+  }
+
+  const exists = await Follow.exists({
+    follower: req.user._id,
+    following: targetUserId,
+  });
+
+  res.json({
+    success: true,
+    following: !!exists,
+  });
+});
+
+/**
+ * GET /api/users/:userId/profile
+ * Returns combined profile details + counts for a user/company, including follow status for current user.
+ * Access: authenticated.
+ */
+exports.getUserProfileDetails = asyncHandler(async (req, res, next) => {
+  const { userId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    const err = new Error('Invalid userId');
+    err.statusCode = 400;
+    return next(err);
+  }
+
+  const user = await User.findById(userId).select('name email role profileImage state');
+  if (!user) {
+    const err = new Error('User not found');
+    err.statusCode = 404;
+    return next(err);
+  }
+
+  const [followersCount, followingCount, postsCount, isFollowing] =
+    await Promise.all([
+      Follow.countDocuments({ following: userId }),
+      Follow.countDocuments({ follower: userId }),
+      Post.countDocuments({ author: userId }),
+      Follow.exists({ follower: req.user._id, following: userId }),
+    ]);
+
+  let details = null;
+
+  if (user.role === 'COMPANY') {
+    const company = await Company.findOne({ userId: user._id }).lean();
+    details = company
+      ? {
+          companyId: company._id,
+          companyName: company.companyName,
+          industry: company.industry,
+          website: company.website,
+          logo: company.logo,
+          tagline: company.tagline,
+          about: company.about,
+          recruiter: company.recruiter,
+          verificationStatus: company.verificationStatus,
+        }
+      : null;
+  } else {
+    const profile = await UserProfile.findOne({ email: user.email?.toLowerCase() }).lean();
+    details = profile
+      ? {
+          profileId: profile._id,
+          fullName: profile.fullName,
+          profilePhoto: profile.profilePhoto,
+          bio: profile.bio,
+          currentCity: profile.currentCity,
+          skills: profile.skills,
+          socialLinks: profile.socialLinks,
+          resumeUrl: profile.resumeUrl,
+        }
+      : null;
+  }
+
+  res.json({
+    success: true,
+    data: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      state: user.state,
+      profileImage: user.profileImage,
+      followersCount,
+      followingCount,
+      postsCount,
+      isFollowing: !!isFollowing,
+      details,
+    },
   });
 });
 

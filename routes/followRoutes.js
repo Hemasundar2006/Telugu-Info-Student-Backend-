@@ -4,6 +4,7 @@ const {
   toggleFollow,
   getFollowers,
   getFollowing,
+  getFollowStatus,
 } = require('../controllers/followController');
 
 const router = express.Router();
@@ -13,6 +14,9 @@ router.use(protect);
 
 // Toggle follow/unfollow
 router.post('/:targetUserId', toggleFollow);
+
+// Follow status (for UI state after refresh)
+router.get('/:targetUserId/status', getFollowStatus);
 
 // Lists
 router.get('/:userId/followers', getFollowers);
