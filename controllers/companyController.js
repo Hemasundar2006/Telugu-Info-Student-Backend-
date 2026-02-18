@@ -110,8 +110,7 @@ exports.getMyCompany = asyncHandler(async (req, res) => {
 /**
  * PUT /api/companies/me
  * Update the company profile linked to the logged-in recruiter.
- * After a company has been approved (verified), any profile edit will reset
- * verificationStatus back to pending so that SUPER_ADMIN can re-approve.
+ * Profile updates do not affect verification status.
  * Access: COMPANY
  */
 exports.updateMyCompany = asyncHandler(async (req, res, next) => {
@@ -142,13 +141,6 @@ exports.updateMyCompany = asyncHandler(async (req, res, next) => {
     }
   );
 
-  // If this company is already verified and they edit profile, move back to pending
-  if (company.verificationStatus === 'verified') {
-    payload.verificationStatus = 'pending';
-    payload.verifiedBy = undefined;
-    payload.verifiedAt = undefined;
-  }
-
   const updated = await Company.findOneAndUpdate(
     { userId },
     { $set: payload },
@@ -164,10 +156,7 @@ exports.updateMyCompany = asyncHandler(async (req, res, next) => {
 
   res.json({
     success: true,
-    message:
-      company.verificationStatus === 'verified'
-        ? 'Profile updated. Verification set to pending for re-approval.'
-        : 'Profile updated successfully.',
+    message: 'Profile updated successfully.',
     data: updated,
   });
 });
